@@ -4,6 +4,7 @@ import path from "path";
 import { clerkMiddleware } from "@clerk/express";
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
+import { start } from "repl";
 
 const app = express();
 
@@ -22,7 +23,12 @@ if (ENV.NODE_ENV === "production") {
     res.sendFile(path.join(__dirname, "../admin", "dist", "index.html"));
   });
 }
-app.listen(ENV.PORT, () => {
-  console.log("Server is up and running");
-  connectDB();
-});
+
+const startServer = async () => {
+  await connectDB();
+  app.listen(ENV.PORT, () => {
+    console.log(`Server is up and running`);
+  });
+};
+
+startServer();
