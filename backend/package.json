@@ -12,8 +12,11 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "dotenv": "^17.3.1",
+    "@clerk/express": "^2.0.1",
+    "cloudinary": "^2.8.0",
+    "dotenv": "^17.2.3",
     "expo-ecommerce": "file:..",
-    "express": "^5.2.1"
+    "express": "^5.1.0",
+    "mongoose": "^8.19.3"
   }
 }
