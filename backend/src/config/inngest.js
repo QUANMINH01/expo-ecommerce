@@ -4,23 +4,28 @@ import { User } from "../models/user.model.js";
 
 export const inngest = new Inngest({ id: "ecommerce-backend" });
 
+const getPrimaryEmail = (user) =>
+  user.email_addresses?.find(
+    (email) => email.id === user.primary_email_address_id,
+  )?.email_address || "";
+
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
   { event: "clerk/user.created" },
   async ({ event }) => {
     await connectDB();
-    const { id, email_address, first_name, last_name, image_url } = event.data;
 
-    const newUser = {
-      clerkId: id,
-      email: email_addresses[0]?.email_address,
-      name: `${first_name || ""} ${last_name || ""}` || "User",
-      imageUrl: image_url,
+    const user = event.data;
+    const email = getPrimaryEmail(user);
+
+    await User.create({
+      clerkId: user.id,
+      email,
+      name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "User",
+      imageUrl: user.image_url,
       addresses: [],
       wishlist: [],
-    };
-
-    await User.create(newUser);
+    });
   },
 );
 
@@ -29,8 +34,9 @@ const deleteUserFromDB = inngest.createFunction(
   { event: "clerk/user.deleted" },
   async ({ event }) => {
     await connectDB();
-    const { id } = event.data;
-    await User.deleteOne({ clerkId: id });
+
+    const user = event.data;
+    await User.deleteOne({ clerkId: user.id });
   },
 );
 
