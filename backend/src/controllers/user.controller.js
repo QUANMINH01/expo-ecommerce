@@ -15,6 +15,10 @@ export async function addAddress(req, res) {
 
     const user = req.user;
 
+    if (!fullName || !streetAddress || !city || !state || !zipCode) {
+      return res.status(400).json({ error: "Missing required address fields" });
+    }
+
     if (isDefault) {
       user.address.forEach((addr) => {
         addr.isDefault = false;
@@ -149,7 +153,7 @@ export async function removeFromWishlist(req, res) {
     if (!user.wishlist.includes(productId)) {
       return res
         .status(400)
-        .json({ message: "Product is not even in wishlist" });
+        .json({ message: "Product not found in wishlist" });
     }
 
     user.wishlist.pull(productId);
@@ -166,7 +170,7 @@ export async function removeFromWishlist(req, res) {
 
 export async function getWishlist(req, res) {
   try {
-    const user = req.user;
+    const user = await User.findById(req.user._id).populate("wishlist");
 
     res.status(200).json({ wishlist: user.wishlist });
   } catch (error) {
@@ -174,3 +178,5 @@ export async function getWishlist(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+
