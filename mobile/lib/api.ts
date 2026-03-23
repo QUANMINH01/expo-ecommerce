@@ -22,10 +22,6 @@ export const useApi = () => {
       async (config) => {
         const token = await getToken();
 
-        console.log("API Request:", `${config.baseURL}${config.url}`);
-        console.log("Signed in:", isSignedIn);
-        console.log("Has token:", !!token);
-
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
