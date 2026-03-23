@@ -8,7 +8,6 @@ import {
   removeFromWishlist,
   updateAddress,
 } from "../controllers/user.controller.js";
-import { get } from "mongoose";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
