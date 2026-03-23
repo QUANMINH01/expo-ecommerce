@@ -2,11 +2,18 @@ import AddressCard from "@/components/AddressCard";
 import AddressesHeader from "@/components/AddressesHeader";
 import AddressFormModal from "@/components/AddressFormModal";
 import SafeScreen from "../../components/SafeScreen";
-import { useAddresses } from "@/hooks/useAddressess";
+import { useAddresses } from "@/hooks/useAddresses";
 import { Address } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 function AddressesScreen() {
   const {
@@ -66,7 +73,11 @@ function AddressesScreen() {
   const handleDeleteAddress = (addressId: string, label: string) => {
     Alert.alert("Delete Address", `Are you sure you want to delete ${label}`, [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteAddress(addressId) },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteAddress(addressId),
+      },
     ]);
   };
 
@@ -98,9 +109,12 @@ function AddressesScreen() {
             Alert.alert("Success", "Address updated successfully");
           },
           onError: (error: any) => {
-            Alert.alert("Error", error?.response?.data?.error || "Failed to update address");
+            Alert.alert(
+              "Error",
+              error?.response?.data?.error || "Failed to update address",
+            );
           },
-        }
+        },
       );
     } else {
       // create new address
@@ -110,7 +124,10 @@ function AddressesScreen() {
           Alert.alert("Success", "Address added successfully");
         },
         onError: (error: any) => {
-          Alert.alert("Error", error?.response?.data?.error || "Failed to add address");
+          Alert.alert(
+            "Error",
+            error?.response?.data?.error || "Failed to add address",
+          );
         },
       });
     }
@@ -131,7 +148,9 @@ function AddressesScreen() {
       {addresses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <Ionicons name="location-outline" size={80} color="#666" />
-          <Text className="text-text-primary font-semibold text-xl mt-4">No addresses yet</Text>
+          <Text className="text-text-primary font-semibold text-xl mt-4">
+            No addresses yet
+          </Text>
           <Text className="text-text-secondary text-center mt-2">
             Add your first delivery address
           </Text>
@@ -140,7 +159,9 @@ function AddressesScreen() {
             activeOpacity={0.8}
             onPress={handleAddAddress}
           >
-            <Text className="text-background font-bold text-base">Add Address</Text>
+            <Text className="text-background font-bold text-base">
+              Add Address
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -168,7 +189,9 @@ function AddressesScreen() {
             >
               <View className="flex-row items-center">
                 <Ionicons name="add-circle-outline" size={24} color="#121212" />
-                <Text className="text-background font-bold text-base ml-2">Add New Address</Text>
+                <Text className="text-background font-bold text-base ml-2">
+                  Add New Address
+                </Text>
               </View>
             </TouchableOpacity>
           </View>

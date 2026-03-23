@@ -4,23 +4,30 @@ import {
   addToWishlist,
   deleteAddress,
   getAddresses,
+  getProfile,
   getWishlist,
   removeFromWishlist,
+  syncUser,
   updateAddress,
 } from "../controllers/user.controller.js";
-import { protectRoute } from "../middleware/auth.middleware.js";
+import {
+  protectRoute,
+  verifyClerkToken,
+} from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+router.post("/sync", verifyClerkToken, syncUser);
+
 router.use(protectRoute);
 
-// address routes
+router.get("/profile", getProfile);
+
 router.post("/addresses", addAddress);
 router.get("/addresses", getAddresses);
 router.put("/addresses/:addressId", updateAddress);
 router.delete("/addresses/:addressId", deleteAddress);
 
-// wishlist routes
 router.post("/wishlist", addToWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);
 router.get("/wishlist", getWishlist);
