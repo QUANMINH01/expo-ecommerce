@@ -27,7 +27,7 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const shippingAddressSchema = new mongoose.Schema({
-  fullname: {
+  fullName: {
     type: String,
     required: true,
   },
@@ -64,7 +64,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    oderItems: [orderItemSchema],
+    orderItems: [orderItemSchema],
     shippingAddress: {
       type: shippingAddressSchema,
       required: true,

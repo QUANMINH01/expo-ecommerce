@@ -1,4 +1,4 @@
-import cloudianry from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
@@ -22,13 +22,12 @@ export async function createProduct(req, res) {
     }
 
     const uploadPromises = req.files.map((file) => {
-      return cloudianry.uploader.upload(file.path, {
+      return cloudinary.uploader.upload(file.path, {
         folder: "products",
       });
     });
 
     const uploadResults = await Promise.all(uploadPromises);
-    // secure_urt
 
     const imageUrls = uploadResults.map((result) => result.secure_url);
 
@@ -41,17 +40,18 @@ export async function createProduct(req, res) {
       images: imageUrls,
     });
 
-    res.status(201).json({ message: "Product created successfully", product });
+    res.status(201).json(product);
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error("Error creating product", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
 
 export async function getAllProducts(_, res) {
   try {
-    const products = (await Product.find()).toSorted({ createdAt: -1 });
-    res.status(200).json({ products });
+    // -1 means in desc order: most recent products first
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.status(200).json(products);
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -74,13 +74,14 @@ export async function updateProduct(req, res) {
     if (stock !== undefined) product.stock = parseInt(stock);
     if (category) product.category = category;
 
+    // handle image updates if new images are uploaded
     if (req.files && req.files.length > 0) {
       if (req.files.length > 3) {
         return res.status(400).json({ message: "Maximum 3 images allowed" });
       }
 
       const uploadPromises = req.files.map((file) => {
-        return cloudianry.uploader.upload(file.path, {
+        return cloudinary.uploader.upload(file.path, {
           folder: "products",
         });
       });
@@ -90,9 +91,9 @@ export async function updateProduct(req, res) {
     }
 
     await product.save();
-    res.status(200).json({ message: "Product updated successfully", product });
+    res.status(200).json(product);
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("Error updating products:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
@@ -103,24 +104,26 @@ export async function getAllOrders(_, res) {
       .populate("user", "name email")
       .populate("orderItems.product")
       .sort({ createdAt: -1 });
+
     res.status(200).json({ orders });
   } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error in getAllOrders controller:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
-export async function updateOrderStatus(_, res) {
+
+export async function updateOrderStatus(req, res) {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
 
     if (!["pending", "shipped", "delivered"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
+      return res.status(400).json({ error: "Invalid status" });
     }
 
     const order = await Order.findById(orderId);
     if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+      return res.status(404).json({ error: "Order not found" });
     }
 
     order.status = status;
@@ -139,18 +142,18 @@ export async function updateOrderStatus(_, res) {
       .status(200)
       .json({ message: "Order status updated successfully", order });
   } catch (error) {
-    console.error("Error updating order status:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error in updateOrderStatus controller:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-export async function getAllCustomers(req, res) {
+export async function getAllCustomers(_, res) {
   try {
-    const customers = await User.find().sort({ createdAt: -1 });
+    const customers = await User.find().sort({ createdAt: -1 }); // latest user first
     res.status(200).json({ customers });
   } catch (error) {
     console.error("Error fetching customers:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -173,13 +176,41 @@ export async function getDashboardStats(_, res) {
     const totalProducts = await Product.countDocuments();
 
     res.status(200).json({
-      totalOrders,
       totalRevenue,
+      totalOrders,
       totalCustomers,
       totalProducts,
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 }
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Delete images from Cloudinary
+    if (product.images && product.images.length > 0) {
+      const deletePromises = product.images.map((imageUrl) => {
+        // Extract public_id from URL (assumes format: .../products/publicId.ext)
+        const publicId =
+          "products/" + imageUrl.split("/products/")[1]?.split(".")[0];
+        if (publicId) return cloudinary.uploader.destroy(publicId);
+      });
+      await Promise.all(deletePromises.filter(Boolean));
+    }
+
+    await Product.findByIdAndDelete(id);
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ message: "Failed to delete product" });
+  }
+};
