@@ -1,65 +1,45 @@
 import mongoose from "mongoose";
 
-const addressSchema = new mongoose.Schema({
-  label: {
-    type: String,
-    required: true,
+const addressSchema = new mongoose.Schema(
+  {
+    label: { type: String },
+    fullName: { type: String },
+    phoneNumber: { type: String },
+    streetAddress: { type: String },
+    city: { type: String },
+    state: { type: String },
+    zipCode: { type: String },
+    isDefault: { type: Boolean, default: false },
   },
-  fullName: {
-    type: String,
-    required: true,
-  },
-  streetAddress: {
-    type: String,
-    required: true,
-  },
-  city: {
-    type: String,
-    required: true,
-  },
-  state: {
-    type: String,
-    required: true,
-  },
-  zipCode: {
-    type: String,
-    required: true,
-  },
-  phoneNumber: {
-    type: String,
-    required: true,
-  },
-  isDefault: {
-    type: Boolean,
-    default: false,
-  },
-});
+  { _id: true },
+);
 
 const userSchema = new mongoose.Schema(
   {
+    clerkId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: true,
+      default: "User",
+    },
     email: {
       type: String,
       required: true,
       unique: true,
     },
-    name: {
-      type: String,
-      required: true,
-    },
     imageUrl: {
       type: String,
       default: "",
     },
-    clerkId: {
-      type: String,
-      unique: true,
-      required: true,
+    addresses: {
+      type: [addressSchema],
+      default: [],
     },
-    stripeCustomerId: {
-      type: String,
-      default: "",
-    },
-    addresses: [addressSchema],
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,

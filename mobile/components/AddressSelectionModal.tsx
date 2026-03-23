@@ -1,8 +1,15 @@
-import { useAddresses } from "@/hooks/useAddressess";
+import { useAddresses } from "@/hooks/useAddresses";
 import { Address } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 
 interface AddressSelectionModalProps {
   visible: boolean;
@@ -21,13 +28,23 @@ const AddressSelectionModal = ({
   const { addresses, isLoading: addressesLoading } = useAddresses();
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-black/50 justify-end">
         <View className="bg-background rounded-t-3xl h-1/2">
           {/* Modal Header */}
           <View className="flex-row items-center justify-between p-6 border-b border-surface">
-            <Text className="text-text-primary text-2xl font-bold">Select Address</Text>
-            <TouchableOpacity onPress={onClose} className="bg-surface rounded-full p-2">
+            <Text className="text-text-primary text-2xl font-bold">
+              Select Address
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              className="bg-surface rounded-full p-2"
+            >
               <Ionicons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -59,7 +76,9 @@ const AddressSelectionModal = ({
                           </Text>
                           {address.isDefault && (
                             <View className="bg-primary/20 rounded-full px-3 py-1">
-                              <Text className="text-primary text-sm font-semibold">Default</Text>
+                              <Text className="text-primary text-sm font-semibold">
+                                Default
+                              </Text>
                             </View>
                           )}
                         </View>
@@ -72,11 +91,17 @@ const AddressSelectionModal = ({
                         <Text className="text-text-secondary text-base mb-2">
                           {address.city}, {address.state} {address.zipCode}
                         </Text>
-                        <Text className="text-text-secondary text-base">{address.phoneNumber}</Text>
+                        <Text className="text-text-secondary text-base">
+                          {address.phoneNumber}
+                        </Text>
                       </View>
                       {selectedAddress?._id === address._id && (
                         <View className="bg-primary rounded-full p-2 ml-3">
-                          <Ionicons name="checkmark" size={24} color="#121212" />
+                          <Ionicons
+                            name="checkmark"
+                            size={24}
+                            color="#121212"
+                          />
                         </View>
                       )}
                     </View>

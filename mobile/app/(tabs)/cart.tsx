@@ -1,5 +1,5 @@
 import SafeScreen from "../../components/SafeScreen";
-import { useAddresses } from "@/hooks/useAddressess";
+import { useAddresses } from "@/hooks/useAddresses";
 import useCart from "@/hooks/useCart";
 import { useApi } from "@/lib/api";
 import {
@@ -24,7 +24,6 @@ const CartScreen = () => {
     cart,
     cartItemCount,
     cartTotal,
-    clearCart,
     isError,
     isLoading,
     isRemoving,
