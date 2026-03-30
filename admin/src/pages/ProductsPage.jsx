@@ -25,13 +25,13 @@ function ProductsPage() {
 
   const queryClient = useQueryClient();
 
-  // fetch some data
-  const { data: products = [] } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: productApi.getAll,
   });
 
-  // creating, update, deleting
+  const products = Array.isArray(data?.products) ? data.products : [];
+
   const createProductMutation = useMutation({
     mutationFn: productApi.create,
     onSuccess: () => {
@@ -57,7 +57,6 @@ function ProductsPage() {
   });
 
   const closeModal = () => {
-    // reset the state
     setShowModal(false);
     setEditingProduct(null);
     setFormData({
@@ -74,23 +73,24 @@ function ProductsPage() {
   const handleEdit = (product) => {
     setEditingProduct(product);
     setFormData({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-      stock: product.stock.toString(),
-      description: product.description,
+      name: product.name || "",
+      category: product.category || "",
+      price: product.price?.toString() || "",
+      stock: product.stock?.toString() || "",
+      description: product.description || "",
     });
-    setImagePreviews(product.images);
+    setImagePreviews(Array.isArray(product.images) ? product.images : []);
     setShowModal(true);
   };
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
     if (files.length > 3) return alert("Maximum 3 images allowed");
 
-    // revoke previous blob URLs to free memory
     imagePreviews.forEach((url) => {
-      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      if (typeof url === "string" && url.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      }
     });
 
     setImages(files);
@@ -100,7 +100,6 @@ function ProductsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // for new products, require images
     if (!editingProduct && imagePreviews.length === 0) {
       return alert("Please upload at least one image");
     }
@@ -112,9 +111,9 @@ function ProductsPage() {
     formDataToSend.append("stock", formData.stock);
     formDataToSend.append("category", formData.category);
 
-    // only append new images if they were selected
-    if (images.length > 0)
+    if (images.length > 0) {
       images.forEach((image) => formDataToSend.append("images", image));
+    }
 
     if (editingProduct) {
       updateProductMutation.mutate({
@@ -128,7 +127,6 @@ function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Products</h1>
@@ -136,6 +134,7 @@ function ProductsPage() {
             Manage your product inventory
           </p>
         </div>
+
         <button
           onClick={() => setShowModal(true)}
           className="btn btn-primary gap-2"
@@ -145,75 +144,99 @@ function ProductsPage() {
         </button>
       </div>
 
-      {/* PRODUCTS GRID */}
       <div className="grid grid-cols-1 gap-4">
-        {products?.map((product) => {
-          const status = getStockStatusBadge(product.stock);
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <span className="loading loading-spinner loading-lg" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body text-center py-12 text-base-content/60">
+              <p className="text-xl font-semibold mb-2">No products found</p>
+              <p className="text-sm">Add your first product to get started</p>
+            </div>
+          </div>
+        ) : (
+          products.map((product) => {
+            const status = getStockStatusBadge(product.stock);
 
-          return (
-            <div key={product._id} className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <div className="flex items-center gap-6">
-                  <div className="avatar">
-                    <div className="w-20 rounded-xl">
-                      <img src={product.images[0]} alt={product.name} />
-                    </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="card-title">{product.name}</h3>
-                        <p className="text-base-content/70 text-sm">
-                          {product.category}
-                        </p>
-                      </div>
-                      <div className={`badge ${status.class}`}>
-                        {status.text}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6 mt-4">
-                      <div>
-                        <p className="text-xs text-base-content/70">Price</p>
-                        <p className="font-bold text-lg">${product.price}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-base-content/70">Stock</p>
-                        <p className="font-bold text-lg">
-                          {product.stock} units
-                        </p>
+            return (
+              <div key={product._id} className="card bg-base-100 shadow-xl">
+                <div className="card-body">
+                  <div className="flex items-center gap-6">
+                    <div className="avatar">
+                      <div className="w-20 rounded-xl">
+                        <img
+                          src={product.images?.[0] || "/placeholder-image.png"}
+                          alt={product.name || "Product"}
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  <div className="card-actions">
-                    <button
-                      className="btn btn-square btn-ghost"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <PencilIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="btn btn-square btn-ghost text-error"
-                      onClick={() => deleteProductMutation.mutate(product._id)}
-                    >
-                      {deleteProductMutation.isPending ? (
-                        <span className="loading loading-spinner"></span>
-                      ) : (
-                        <Trash2Icon className="w-5 h-5" />
-                      )}
-                    </button>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="card-title">{product.name}</h3>
+                          <p className="text-base-content/70 text-sm">
+                            {product.category}
+                          </p>
+                        </div>
+
+                        <div className={`badge ${status.class}`}>
+                          {status.text}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6 mt-4">
+                        <div>
+                          <p className="text-xs text-base-content/70">Price</p>
+                          <p className="font-bold text-lg">${product.price}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-base-content/70">Stock</p>
+                          <p className="font-bold text-lg">
+                            {product.stock} units
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card-actions">
+                      <button
+                        className="btn btn-square btn-ghost"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <PencilIcon className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        className="btn btn-square btn-ghost text-error"
+                        onClick={() =>
+                          deleteProductMutation.mutate(product._id)
+                        }
+                      >
+                        {deleteProductMutation.isPending ? (
+                          <span className="loading loading-spinner"></span>
+                        ) : (
+                          <Trash2Icon className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      {/* ADD/EDIT PRODUCT MODAL */}
-
-      <input type="checkbox" className="modal-toggle" checked={showModal} />
+      <input
+        type="checkbox"
+        className="modal-toggle"
+        checked={showModal}
+        readOnly
+      />
 
       <div className="modal">
         <div className="modal-box max-w-2xl">
@@ -253,6 +276,7 @@ function ProductsPage() {
                 <label className="label">
                   <span>Category</span>
                 </label>
+
                 <select
                   className="select select-bordered"
                   value={formData.category}
@@ -275,6 +299,7 @@ function ProductsPage() {
                 <label className="label">
                   <span>Price ($)</span>
                 </label>
+
                 <input
                   type="number"
                   step="0.01"
@@ -292,6 +317,7 @@ function ProductsPage() {
                 <label className="label">
                   <span>Stock</span>
                 </label>
+
                 <input
                   type="number"
                   placeholder="0"
@@ -309,6 +335,7 @@ function ProductsPage() {
               <label className="label">
                 <span>Description</span>
               </label>
+
               <textarea
                 className="textarea textarea-bordered h-24 w-full"
                 placeholder="Enter product description"

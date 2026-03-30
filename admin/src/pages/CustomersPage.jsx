@@ -8,10 +8,9 @@ function CustomersPage() {
     queryFn: customerApi.getAll,
   });
 
-  const customers = data?.customers || [];
-
+  const customers = Array.isArray(data?.customers) ? data.customers : [];
   return (
-    <div className="spacey-6">
+    <div className="space-y-6">
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold">Customers</h1>
