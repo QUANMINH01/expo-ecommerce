@@ -185,19 +185,38 @@ export async function addToWishlist(req, res) {
     const { productId } = req.body;
     const user = req.user;
 
-    if (user.wishlist.includes(productId)) {
+    if (!productId) {
+      return res.status(400).json({ error: "Product ID is required" });
+    }
+
+    if (user.wishlist.some((id) => id.toString() === productId)) {
       return res.status(400).json({ error: "Product already in wishlist" });
     }
 
     user.wishlist.push(productId);
     await user.save();
 
+    const populatedUser = await user.populate("wishlist");
+
     res.status(200).json({
       message: "Product added to wishlist",
-      wishlist: user.wishlist,
+      wishlist: populatedUser.wishlist,
     });
   } catch (error) {
     console.error("Error in addToWishlist controller:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getWishlist(req, res) {
+  try {
+    const user = await req.user.populate("wishlist");
+
+    res.status(200).json({
+      wishlist: user.wishlist,
+    });
+  } catch (error) {
+    console.error("Error in getWishlist controller:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -207,16 +226,22 @@ export async function removeFromWishlist(req, res) {
     const { productId } = req.params;
     const user = req.user;
 
-    if (!user.wishlist.includes(productId)) {
+    if (!productId) {
+      return res.status(400).json({ error: "Product ID is required" });
+    }
+
+    if (!user.wishlist.some((id) => id.toString() === productId)) {
       return res.status(400).json({ error: "Product not found in wishlist" });
     }
 
     user.wishlist.pull(productId);
     await user.save();
 
+    const populatedUser = await user.populate("wishlist");
+
     res.status(200).json({
       message: "Product removed from wishlist",
-      wishlist: user.wishlist,
+      wishlist: populatedUser.wishlist,
     });
   } catch (error) {
     console.error("Error in removeFromWishlist controller:", error);
