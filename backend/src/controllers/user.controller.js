@@ -1,4 +1,5 @@
 import { User } from "../models/user.model.js";
+import { isAdminEmail, normalizeEmail } from "../utils/admin.js";
 
 export async function syncUser(req, res) {
   try {
@@ -13,21 +14,26 @@ export async function syncUser(req, res) {
       return res.status(400).json({ message: "Email is required" });
     }
 
+    const normalizedEmail = normalizeEmail(email);
+    const nextRole = isAdminEmail(normalizedEmail) ? "admin" : "customer";
+
     let user = await User.findOne({ clerkId });
 
     if (!user) {
       user = await User.create({
         clerkId,
-        email,
+        email: normalizedEmail,
         name: name || "User",
         imageUrl: imageUrl || "",
+        role: nextRole,
         addresses: [],
         wishlist: [],
       });
     } else {
-      user.email = email;
+      user.email = normalizedEmail;
       user.name = name || user.name;
       user.imageUrl = imageUrl || user.imageUrl;
+      user.role = nextRole;
       await user.save();
     }
 
@@ -214,16 +220,6 @@ export async function removeFromWishlist(req, res) {
     });
   } catch (error) {
     console.error("Error in removeFromWishlist controller:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-}
-
-export async function getWishlist(req, res) {
-  try {
-    const user = await User.findById(req.user._id).populate("wishlist");
-    res.status(200).json({ wishlist: user.wishlist });
-  } catch (error) {
-    console.error("Error in getWishlist controller:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

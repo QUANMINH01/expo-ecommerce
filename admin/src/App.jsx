@@ -9,11 +9,16 @@ import OrdersPage from "./pages/OrdersPage";
 import CustomersPage from "./pages/CustomersPage";
 import DashboardLayout from "./layouts/DashBoardLayout";
 import PageLoader from "./components/PageLoader";
-import axiosInstance from "./lib/axios";
+import axiosInstance, { setAuthTokenGetter } from "./lib/axios";
 
 function App() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    setAuthTokenGetter(getToken);
+  }, [isLoaded, getToken]);
 
   useEffect(() => {
     const syncUser = async () => {

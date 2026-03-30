@@ -1,7 +1,10 @@
 import axios from "axios";
-import { Clerk } from "@clerk/clerk-js";
 
-const clerk = new Clerk(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+let authTokenGetter = null;
+
+export function setAuthTokenGetter(getter) {
+  authTokenGetter = typeof getter === "function" ? getter : null;
+}
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -10,8 +13,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(async (config) => {
   try {
-    await clerk.load();
-    const token = await clerk.session?.getToken();
+    const token = await authTokenGetter?.();
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

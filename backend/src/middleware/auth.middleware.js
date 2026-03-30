@@ -1,6 +1,6 @@
 import { requireAuth } from "@clerk/express";
 import { User } from "../models/user.model.js";
-import { ENV } from "../config/env.js";
+import { isAdminEmail, normalizeEmail } from "../utils/admin.js";
 
 export const verifyClerkToken = [
   requireAuth(),
@@ -58,19 +58,20 @@ export const adminOnly = (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized - user not found" });
     }
 
-    const userEmail = req.user.email?.trim().toLowerCase();
-    const adminEmail = ENV.ADMIN_EMAIL?.trim().toLowerCase();
+    const userEmail = normalizeEmail(req.user.email);
+    const hasAdminRole = req.user.role === "admin";
+    const matchesAdminEmail = isAdminEmail(userEmail);
 
-    console.log("req.user.email =", userEmail);
-    console.log("ENV.ADMIN_EMAIL =", adminEmail);
-
-    if (userEmail !== adminEmail) {
+    if (!hasAdminRole && !matchesAdminEmail) {
       return res.status(403).json({
         message: "Forbidden - admin access only",
-        debug: {
-          userEmail,
-          adminEmail,
-        },
+      });
+    }
+
+    if (req.user.role !== "admin" && matchesAdminEmail) {
+      req.user.role = "admin";
+      req.user.save().catch((error) => {
+        console.error("Failed to persist admin role:", error);
       });
     }
 
