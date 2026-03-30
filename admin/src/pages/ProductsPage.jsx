@@ -37,6 +37,14 @@ function ProductsPage() {
     onSuccess: () => {
       closeModal();
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      alert("Product created successfully");
+    },
+    onError: (error) => {
+      console.error(
+        "Create product error:",
+        error.response?.data || error.message,
+      );
+      alert(error.response?.data?.message || "Failed to create product");
     },
   });
 
