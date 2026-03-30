@@ -65,7 +65,13 @@ export const adminOnly = (req, res, next) => {
     console.log("ENV.ADMIN_EMAIL =", adminEmail);
 
     if (userEmail !== adminEmail) {
-      return res.status(403).json({ message: "Forbidden - admin access only" });
+      return res.status(403).json({
+        message: "Forbidden - admin access only",
+        debug: {
+          userEmail,
+          adminEmail,
+        },
+      });
     }
 
     next();
