@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
 
 import LoginPage from "./pages/LoginPage";
