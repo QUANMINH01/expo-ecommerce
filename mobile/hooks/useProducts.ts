@@ -13,7 +13,7 @@ const useProducts = () => {
     queryFn: async () => {
       console.log("Calling GET /products");
 
-      const response = await api.get<Product[]>("/products");
+      const response = await api.get<{ products: Product[] }>("/products");
 
       console.log("Products response status:", response.status);
       console.log("Products response data:", response.data);
