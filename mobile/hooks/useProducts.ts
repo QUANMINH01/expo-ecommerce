@@ -7,7 +7,7 @@ const useProducts = () => {
   const api = useApi();
   const { isLoaded, isSignedIn } = useAuth();
 
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: ["products"],
     enabled: isLoaded && isSignedIn,
     queryFn: async () => {
@@ -18,7 +18,7 @@ const useProducts = () => {
       console.log("Products response status:", response.status);
       console.log("Products response data:", response.data);
 
-      return response.data;
+      return response.data.products ?? [];
     },
     retry: false,
   });

@@ -25,21 +25,17 @@ const ShopScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const { data: products, isLoading, isError } = useProducts();
+  const { data: products = [], isLoading, isError } = useProducts();
 
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
+    let filtered = Array.isArray(products) ? products : [];
 
-    let filtered = products;
-
-    // filtering by category
     if (selectedCategory !== "All") {
       filtered = filtered.filter(
         (product) => product.category === selectedCategory,
       );
     }
 
-    // filtering by searh query
     if (searchQuery.trim()) {
       filtered = filtered.filter((product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -56,40 +52,37 @@ const ShopScreen = () => {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER */}
         <View className="px-6 pb-4 pt-6">
-          <View className="flex-row items-center justify-between mb-6">
+          <View className="mb-6 flex-row items-center justify-between">
             <View>
               <Text className="text-text-primary text-3xl font-bold tracking-tight">
                 Shop
               </Text>
-              <Text className="text-text-secondary text-sm mt-1">
+              <Text className="text-text-secondary mt-1 text-sm">
                 Browse all products
               </Text>
             </View>
 
             <TouchableOpacity
-              className="bg-surface/50 p-3 rounded-full"
+              className="bg-surface/50 rounded-full p-3"
               activeOpacity={0.7}
             >
               <Ionicons name="options-outline" size={22} color={"#fff"} />
             </TouchableOpacity>
           </View>
 
-          {/* SEARCH BAR */}
-          <View className="bg-surface flex-row items-center px-5 py-4 rounded-2xl">
+          <View className="bg-surface flex-row items-center rounded-2xl px-5 py-4">
             <Ionicons color={"#666"} size={22} name="search" />
             <TextInput
               placeholder="Search for products"
               placeholderTextColor={"#666"}
-              className="flex-1 ml-3 text-base text-text-primary"
+              className="text-text-primary ml-3 flex-1 text-base"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
         </View>
 
-        {/* CATEGORY FILTER */}
         <View className="mb-6">
           <ScrollView
             horizontal
@@ -102,7 +95,7 @@ const ShopScreen = () => {
                 <TouchableOpacity
                   key={category.name}
                   onPress={() => setSelectedCategory(category.name)}
-                  className={`mr-3 rounded-2xl size-20 overflow-hidden items-center justify-center ${isSelected ? "bg-primary" : "bg-surface"}`}
+                  className={`mr-3 size-20 items-center justify-center overflow-hidden rounded-2xl ${isSelected ? "bg-primary" : "bg-surface"}`}
                 >
                   {category.icon ? (
                     <Ionicons
@@ -123,8 +116,8 @@ const ShopScreen = () => {
           </ScrollView>
         </View>
 
-        <View className="px-6 mb-6">
-          <View className="flex-row items-center justify-between mb-4">
+        <View className="mb-6 px-6">
+          <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-text-primary text-lg font-bold">
               Products
             </Text>
@@ -133,7 +126,6 @@ const ShopScreen = () => {
             </Text>
           </View>
 
-          {/* PRODUCTS GRID */}
           <ProductsGrid
             products={filteredProducts}
             isLoading={isLoading}

@@ -10,6 +10,7 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import * as Sentry from "@sentry/react-native";
 import useSyncUser from "@/hooks/useSyncUser";
+import { StripeProvider } from "@stripe/stripe-react-native";
 
 Sentry.init({
   dsn: "https://fb6731b90610cc08333e6c16ffac5724@o4509813037137920.ingest.de.sentry.io/4510451611205712",
@@ -55,15 +56,26 @@ function AppNavigator() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
 export default Sentry.wrap(function RootLayout() {
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    throw new Error("Missing EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+  }
+
   return (
     <ClerkProvider
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       tokenCache={tokenCache}
     >
-      <QueryClientProvider client={queryClient}>
-        <AppNavigator />
-      </QueryClientProvider>
+      <StripeProvider
+        publishableKey={STRIPE_PUBLISHABLE_KEY}
+        urlScheme="mobile"
+      >
+        <QueryClientProvider client={queryClient}>
+          <AppNavigator />
+        </QueryClientProvider>
+      </StripeProvider>
     </ClerkProvider>
   );
 });

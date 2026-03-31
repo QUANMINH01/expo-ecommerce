@@ -17,9 +17,14 @@ import { Image } from "expo-image";
 import OrderSummary from "@/components/OrderSummary";
 import AddressSelectionModal from "@/components/AddressSelectionModal";
 import * as Sentry from "@sentry/react-native";
+import { useStripe } from "@stripe/stripe-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CartScreen = () => {
   const api = useApi();
+  const queryClient = useQueryClient();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   const {
     cart,
     cartItemCount,
@@ -31,6 +36,7 @@ const CartScreen = () => {
     removeFromCart,
     updateQuantity,
   } = useCart();
+
   const { addresses } = useAddresses();
 
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -90,30 +96,79 @@ const CartScreen = () => {
     try {
       setPaymentLoading(true);
 
-      await api.post("/payment/create-intent", {
-        cartItems,
-        shippingAddress: {
-          fullName: selectedAddress.fullName,
-          streetAddress: selectedAddress.streetAddress,
-          city: selectedAddress.city,
-          state: selectedAddress.state,
-          zipCode: selectedAddress.zipCode,
-          phoneNumber: selectedAddress.phoneNumber,
+      const { data } = await api.post<{ clientSecret: string }>(
+        "/payment/create-intent",
+        {
+          cartItems,
+          shippingAddress: {
+            fullName: selectedAddress.fullName,
+            streetAddress: selectedAddress.streetAddress,
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            zipCode: selectedAddress.zipCode,
+            phoneNumber: selectedAddress.phoneNumber,
+          },
         },
+      );
+
+      if (!data?.clientSecret) {
+        throw new Error("Missing payment client secret");
+      }
+
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: "Expo Ecommerce",
+        paymentIntentClientSecret: data.clientSecret,
+        returnURL: "mobile://stripe-redirect",
+        defaultBillingDetails: {
+          name: selectedAddress.fullName,
+          phone: selectedAddress.phoneNumber || undefined,
+          address: {
+            line1: selectedAddress.streetAddress,
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            postalCode: selectedAddress.zipCode,
+          },
+        },
+        allowsDelayedPaymentMethods: false,
       });
 
+      if (initError) {
+        Alert.alert("Payment setup failed", initError.message);
+        return;
+      }
+
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        if (paymentError.code !== "Canceled") {
+          Alert.alert("Payment failed", paymentError.message);
+        }
+        return;
+      }
+
+      await api.delete("/cart");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["cart"] }),
+        queryClient.invalidateQueries({ queryKey: ["orders"] }),
+      ]);
+
       Alert.alert(
-        "Checkout Ready",
-        "Payment integration is temporarily disabled on this Windows setup.",
+        "Payment successful",
+        "Your payment was completed successfully.",
       );
-    } catch (error) {
+    } catch (error: any) {
       Sentry.logger.error("Payment failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error?.message || "Unknown error",
         cartTotal: total,
         itemCount: cartItems.length,
       });
 
-      Alert.alert("Error", "Failed to process payment");
+      Alert.alert(
+        "Error",
+        error?.response?.data?.error ||
+          error?.message ||
+          "Failed to process payment",
+      );
     } finally {
       setPaymentLoading(false);
     }
@@ -322,13 +377,16 @@ function EmptyUI() {
           Cart
         </Text>
       </View>
+
       <View className="flex-1 items-center justify-center px-6">
-        <Ionicons name="cart-outline" size={80} color="#666" />
-        <Text className="text-text-primary font-semibold text-xl mt-4">
+        <View className="bg-surface rounded-full p-8 mb-6">
+          <Ionicons name="bag-outline" size={64} color="#666" />
+        </View>
+        <Text className="text-text-primary font-bold text-2xl mb-3">
           Your cart is empty
         </Text>
-        <Text className="text-text-secondary text-center mt-2">
-          Add some products to get started
+        <Text className="text-text-secondary text-center text-base leading-6">
+          Looks like you have not added anything to your cart yet
         </Text>
       </View>
     </View>
