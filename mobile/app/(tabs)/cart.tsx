@@ -17,8 +17,12 @@ import { Image } from "expo-image";
 import OrderSummary from "@/components/OrderSummary";
 import AddressSelectionModal from "@/components/AddressSelectionModal";
 import * as Sentry from "@sentry/react-native";
-import { useStripe } from "@stripe/stripe-react-native";
+import { PaymentSheetError, useStripe } from "@stripe/stripe-react-native";
 import { useQueryClient } from "@tanstack/react-query";
+
+type CreatePaymentIntentResponse = {
+  clientSecret: string;
+};
 
 const CartScreen = () => {
   const api = useApi();
@@ -36,7 +40,6 @@ const CartScreen = () => {
     removeFromCart,
     updateQuantity,
   } = useCart();
-
   const { addresses } = useAddresses();
 
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -70,7 +73,7 @@ const CartScreen = () => {
   };
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0 || paymentLoading) return;
 
     if (!addresses || addresses.length === 0) {
       Alert.alert(
@@ -96,7 +99,7 @@ const CartScreen = () => {
     try {
       setPaymentLoading(true);
 
-      const { data } = await api.post<{ clientSecret: string }>(
+      const { data } = await api.post<CreatePaymentIntentResponse>(
         "/payment/create-intent",
         {
           cartItems,
@@ -111,64 +114,73 @@ const CartScreen = () => {
         },
       );
 
-      if (!data?.clientSecret) {
-        throw new Error("Missing payment client secret");
+      if (!data.clientSecret) {
+        throw new Error("Missing Stripe client secret from backend");
       }
 
-      const { error: initError } = await initPaymentSheet({
+      const initResult = await initPaymentSheet({
         merchantDisplayName: "Expo Ecommerce",
         paymentIntentClientSecret: data.clientSecret,
+        allowsDelayedPaymentMethods: false,
         returnURL: "mobile://stripe-redirect",
         defaultBillingDetails: {
           name: selectedAddress.fullName,
-          phone: selectedAddress.phoneNumber || undefined,
+          phone: selectedAddress.phoneNumber,
           address: {
             line1: selectedAddress.streetAddress,
             city: selectedAddress.city,
             state: selectedAddress.state,
             postalCode: selectedAddress.zipCode,
+            country: "US",
           },
         },
-        allowsDelayedPaymentMethods: false,
       });
 
-      if (initError) {
-        Alert.alert("Payment setup failed", initError.message);
+      if (initResult.error) {
+        Sentry.logger.error("Stripe PaymentSheet initialization failed", {
+          code: initResult.error.code,
+          message: initResult.error.message,
+        });
+
+        Alert.alert("Stripe Error", initResult.error.message);
         return;
       }
 
-      const { error: paymentError } = await presentPaymentSheet();
+      const paymentResult = await presentPaymentSheet();
 
-      if (paymentError) {
-        if (paymentError.code !== "Canceled") {
-          Alert.alert("Payment failed", paymentError.message);
+      if (paymentResult.error) {
+        if (paymentResult.error.code !== PaymentSheetError.Canceled) {
+          Sentry.logger.error("Stripe payment failed", {
+            code: paymentResult.error.code,
+            message: paymentResult.error.message,
+          });
+
+          Alert.alert("Payment failed", paymentResult.error.message);
         }
+
         return;
       }
-
-      await api.delete("/cart");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["cart"] }),
-        queryClient.invalidateQueries({ queryKey: ["orders"] }),
-      ]);
 
       Alert.alert(
         "Payment successful",
-        "Your payment was completed successfully.",
+        "Your payment was completed. Your order will appear shortly.",
       );
+
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     } catch (error: any) {
+      const message =
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to process payment";
+
       Sentry.logger.error("Payment failed", {
-        error: error?.message || "Unknown error",
+        error: message,
         cartTotal: total,
         itemCount: cartItems.length,
       });
 
-      Alert.alert(
-        "Error",
-        error?.response?.data?.error ||
-          error?.message ||
-          "Failed to process payment",
-      );
+      Alert.alert("Error", message);
     } finally {
       setPaymentLoading(false);
     }
@@ -239,7 +251,7 @@ const CartScreen = () => {
                           -1,
                         )
                       }
-                      disabled={isUpdating}
+                      disabled={isUpdating || paymentLoading}
                     >
                       {isUpdating ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
@@ -260,7 +272,7 @@ const CartScreen = () => {
                       onPress={() =>
                         handleQuantityChange(item.product._id, item.quantity, 1)
                       }
-                      disabled={isUpdating}
+                      disabled={isUpdating || paymentLoading}
                     >
                       {isUpdating ? (
                         <ActivityIndicator size="small" color="#121212" />
@@ -275,7 +287,7 @@ const CartScreen = () => {
                       onPress={() =>
                         handleRemoveItem(item.product._id, item.product.name)
                       }
-                      disabled={isRemoving}
+                      disabled={isRemoving || paymentLoading}
                     >
                       <Ionicons
                         name="trash-outline"
@@ -377,16 +389,13 @@ function EmptyUI() {
           Cart
         </Text>
       </View>
-
       <View className="flex-1 items-center justify-center px-6">
-        <View className="bg-surface rounded-full p-8 mb-6">
-          <Ionicons name="bag-outline" size={64} color="#666" />
-        </View>
-        <Text className="text-text-primary font-bold text-2xl mb-3">
+        <Ionicons name="cart-outline" size={80} color="#666" />
+        <Text className="text-text-primary font-semibold text-xl mt-4">
           Your cart is empty
         </Text>
-        <Text className="text-text-secondary text-center text-base leading-6">
-          Looks like you have not added anything to your cart yet
+        <Text className="text-text-secondary text-center mt-2">
+          Add some products to get started
         </Text>
       </View>
     </View>

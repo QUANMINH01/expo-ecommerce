@@ -18,26 +18,37 @@ import { handleWebhook } from "./controllers/payment.controller.js";
 
 const app = express();
 
-/**
- * IMPORTANT:
- * Stripe webhook must receive the raw request body.
- * This route has to be registered BEFORE express.json().
- */
-app.post(
-  "/api/payment/webhook",
-  express.raw({ type: "application/json" }),
-  handleWebhook,
-);
-
-// Normal middlewares for the rest of the app
-app.use(express.json());
-app.use(clerkMiddleware());
 app.use(
   cors({
     origin: ENV.CLIENT_URL,
     credentials: true,
   }),
 );
+
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Backend is running" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ message: "Success" });
+});
+
+// Stripe webhook phải đặt TRƯỚC express.json()
+app.post(
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" }),
+  handleWebhook,
+);
+
+// Các route còn lại mới dùng JSON parser
+app.use(express.json());
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
+app.use(clerkMiddleware());
 
 app.use("/api/inngest", serve({ client: inngest, functions }));
 
@@ -49,12 +60,19 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ message: "Success" });
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+  });
 });
 
-app.get("/", (req, res) => {
-  res.status(200).json({ message: "Backend is running" });
+app.use((error, req, res, next) => {
+  console.error("Server error:", error);
+
+  res.status(error.status || 500).json({
+    error: error.message || "Internal server error",
+  });
 });
 
 const startServer = async () => {
