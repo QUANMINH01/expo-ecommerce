@@ -8,12 +8,12 @@ import {
 } from "@tanstack/react-query";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import * as Sentry from "@sentry/react-native";
 import useSyncUser from "@/hooks/useSyncUser";
-import { StripeProvider } from "@stripe/stripe-react-native";
 
 Sentry.init({
-  dsn: "https://fb6731b90610cc08333e6c16ffac5724@o4509813037137920.ingest.de.sentry.io/4510451611205712",
+  dsn: "https://c564099d4650aa08a7a70b8ec53273ba@o4511087032139776.ingest.us.sentry.io/4511302729728000",
   sendDefaultPii: true,
   enableLogs: true,
   replaysSessionSampleRate: 1.0,
@@ -56,20 +56,14 @@ function AppNavigator() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
-const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
 export default Sentry.wrap(function RootLayout() {
-  if (!STRIPE_PUBLISHABLE_KEY) {
-    throw new Error("Missing EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-  }
-
   return (
     <ClerkProvider
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       tokenCache={tokenCache}
     >
       <StripeProvider
-        publishableKey={STRIPE_PUBLISHABLE_KEY}
+        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
         urlScheme="mobile"
       >
         <QueryClientProvider client={queryClient}>

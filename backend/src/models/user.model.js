@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    stripeCustomerId: {
+      type: String,
+      index: true,
+    },
     imageUrl: {
       type: String,
       default: "",
